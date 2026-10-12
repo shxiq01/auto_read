@@ -175,6 +175,11 @@
     }
   }
 
+  // 判断当前页面是否为有效的帖子详情页（用于跳过 404/私密帖等无效页）
+  function isTopicPage() {
+    return !!document.querySelector(".topic-post, #topic-title");
+  }
+
   // 入口函数
   window.addEventListener("load", () => {
     checkFirstRun();
@@ -185,11 +190,20 @@
       localStorage.getItem("autoLikeEnabled")
     );
     if (localStorage.getItem("read") === "true") {
-      console.log("执行正常的滚动和检查逻辑");
-      checkScroll();
-      if (isAutoLikeEnabled()) {
-        autoLike();
-      }
+      // 等待 Discourse SPA 渲染后再判断页面类型
+      setTimeout(() => {
+        // 当前不是有效帖子页（错误页/列表页），直接跳到下一个帖子
+        if (!isTopicPage()) {
+          console.log("当前页面不是有效帖子页，尝试跳转下一个帖子");
+          openNewTopic();
+          return;
+        }
+        console.log("执行正常的滚动和检查逻辑");
+        checkScroll();
+        if (isAutoLikeEnabled()) {
+          autoLike();
+        }
+      }, 2500);
     }
   });
 
@@ -306,9 +320,8 @@
       }
       localStorage.removeItem("navigatingToNextTopic");
     } else {
-      // 从最新帖子列表开始阅读
-      window.location.href = `${BASE_URL}/latest`;
-      checkScroll();
+      // 直接进入最新帖子列表的第一个帖子开始阅读
+      openNewTopic();
     }
   };
 
